@@ -701,9 +701,11 @@ def sync_tables(conn_info, logical_streams, state, end_lsn, state_file):
                     except Exception:
                         LOGGER.debug('Unable to open and parse %s', state_file)
                     finally:
-                        lsn_comitted = min(
-                            get_bookmark(state_comitted, s['tap_stream_id'], 'lsn', start_lsn)  for s in logical_streams
-                        )
+                        LOGGER.info('state_comitted\n %s', state_comitted)
+                        LOGGER.info('logical_streams\n %s', logical_streams)
+                        lsn_comitted = min([get_bookmark(state_comitted, s['tap_stream_id'], 'lsn') for s in logical_streams])
+
+                        LOGGER.info(f"start_lsn: {start_lsn}, lsn_currently_processing: {lsn_currently_processing}, lsn_comitted: {lsn_comitted}, lsn_to_flush: {lsn_to_flush}")
                         if (lsn_currently_processing > lsn_comitted) and (lsn_comitted > lsn_to_flush):
                             lsn_to_flush = lsn_comitted
                             LOGGER.info('Confirming write up to %s, flush to %s',
@@ -730,6 +732,7 @@ def sync_tables(conn_info, logical_streams, state, end_lsn, state_file):
 
             for s in logical_streams:
                 state = singer.write_bookmark(state, s['tap_stream_id'], 'lsn', lsn_last_processed)
+            LOGGER.info(f"Final state: {state}")
 
         singer.write_message(singer.StateMessage(value=copy.deepcopy(state)))
 
